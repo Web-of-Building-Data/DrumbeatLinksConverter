@@ -1,6 +1,7 @@
 package fi.aalto.drumbeat;
 
 import java.io.File;
+import java.io.FileReader;
 import java.util.Scanner;
 
 import org.apache.commons.cli.CommandLine;
@@ -10,6 +11,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
+
+import com.opencsv.CSVReader;
 
 /*
 * 
@@ -38,7 +41,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 
 public class GUIDConverter {
 
@@ -105,8 +107,10 @@ public class GUIDConverter {
 			System.out.println("GUIDConverter:");
 
 			final String separator = getOption('c', commandLine);
-			if (separator != StringUtils.EMPTY)
-				conversion_options.setSeparator(separator);
+			if (separator != StringUtils.EMPTY) {
+				if (separator.length() > 0)
+					conversion_options.setSeparator(separator.charAt(0));
+			}
 			System.out.println(" CSV column separator: " + conversion_options.getSeparator());
 
 			final String subject_prefix = getOption('s', commandLine);
@@ -163,8 +167,7 @@ public class GUIDConverter {
 				if (defaultAnswer != null)
 					input = defaultAnswer;
 				else {
-					Scanner inputReader = new Scanner(System.in);
-					input = inputReader.nextLine();
+					input = (new Scanner(System.in)).nextLine();
 				}
 
 				input = input.trim().toLowerCase();
@@ -197,16 +200,16 @@ public class GUIDConverter {
 			conversion_options = new ColumnNamesModeConversionOptions(conversion_options);
 			System.out.println("Column names are used.");
 			ColumnNamesModeConversionOptions cona = (ColumnNamesModeConversionOptions) conversion_options;
-			final String  subjectElementGUID_columnName= getOption("cns", commandLine);
-			final String  correspondingObjectGUID_columnName= getOption("cno", commandLine);
-			if(subjectElementGUID_columnName!=StringUtils.EMPTY)
+			final String subjectElementGUID_columnName = getOption("cns", commandLine);
+			final String correspondingObjectGUID_columnName = getOption("cno", commandLine);
+			if (subjectElementGUID_columnName != StringUtils.EMPTY)
 				cona.setSubjectElementGUID_columnName(subjectElementGUID_columnName);
-			if(correspondingObjectGUID_columnName!=StringUtils.EMPTY)
+			if (correspondingObjectGUID_columnName != StringUtils.EMPTY)
 				cona.setCorrespondingObjectGUID_columnName(correspondingObjectGUID_columnName);
 			if (!cona.isValid()) {
 				System.out.println("Invalid column selection: Each value should be unique,");
 			}
-			
+
 			convert(cona);
 			return true;
 
@@ -214,14 +217,14 @@ public class GUIDConverter {
 			conversion_options = new ColumnNumbersModeConversionOptions(conversion_options);
 			System.out.println("Column numbers are used.");
 			ColumnNumbersModeConversionOptions conu = (ColumnNumbersModeConversionOptions) conversion_options;
-			
-			final String  subjectGUID_columnNumber= getOption("cis", commandLine);
-			final String  correspondingObjectGUID_columnNumber= getOption("cio", commandLine);
-			if(subjectGUID_columnNumber!=StringUtils.EMPTY)
+
+			final String subjectGUID_columnNumber = getOption("cis", commandLine);
+			final String correspondingObjectGUID_columnNumber = getOption("cio", commandLine);
+			if (subjectGUID_columnNumber != StringUtils.EMPTY)
 				conu.setSubjectGUID_columnNumber(subjectGUID_columnNumber);
-			if(correspondingObjectGUID_columnNumber!=StringUtils.EMPTY)
+			if (correspondingObjectGUID_columnNumber != StringUtils.EMPTY)
 				conu.setCorrespondingObjectGUID_columnNumber(correspondingObjectGUID_columnNumber);
-			
+
 			if (!conu.isValid()) {
 				System.out.println("Invalid column selection: Each value should be unique,");
 			}
@@ -234,12 +237,43 @@ public class GUIDConverter {
 		return false;
 	}
 
-	private void convert(ColumnNamesModeConversionOptions conversion_options2) {
-		 final String CSV_FILENAME = "data.csv";
+	private void convert(ColumnNamesModeConversionOptions options) {
+		
+		
+
 	}
 
-	private void convert(ColumnNumbersModeConversionOptions conversion_options2) {
+	private void convert(ColumnNumbersModeConversionOptions options) {
+		String subject_guid = null;
+		try {
+			CSVReader reader = new CSVReader(new FileReader(options.getInputFile()), options.getSeparator(), '"', 0);
+			try {
+				String[] nextLine;
+				while ((nextLine = reader.readNext()) != null) {
+					if (nextLine != null) {
+						try {
+							String line_guid = nextLine[options.getSubjectGUID_columnNumber() - 1].trim();
+							if(line_guid!=null && line_guid.length()>0)
+								subject_guid=line_guid;
+							String object_guid = nextLine[options.getCorrespondingObjectGUID_columnNumber() - 1].trim();
+							if (object_guid != null && object_guid.length() > 0) {
+								GenericLinkBean gb = new GenericLinkBean(subject_guid, object_guid);
+								System.out.println(gb);
+							}
 
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+				}
+			} finally {
+				reader.close();
+			}
+		}
+
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void executeCommandLine(CommandLine commandLine) {

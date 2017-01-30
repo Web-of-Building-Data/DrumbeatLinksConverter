@@ -30,14 +30,13 @@ SOFTWARE.
 
 
 public class ConversionOptions {
-	String separator = ";";
-	String inputFile;
-	String resultFile;
+	private Character separator = ';';
+	private String inputFile;
+	private String resultFile;
 
-	String subject_prefix = "http://drumbeat.cs.hut.fi/drumbeat/objects/";
-	String predicate_uri =  "http://drumbeat.cs.hut.fi/link";
-	String object_prefix = " http://drumbeat.cs.hut.fi/drumbeat/objects/";
-
+	private String subject_prefix = "http://drumbeat.cs.hut.fi/drumbeat/objects/";
+	private String predicate_uri =  "http://drumbeat.cs.hut.fi/link";
+	private String object_prefix = " http://drumbeat.cs.hut.fi/drumbeat/objects/";
 	
 	public ConversionOptions() {
 		
@@ -52,11 +51,13 @@ public class ConversionOptions {
 		this.object_prefix = co.object_prefix;
 	}
 
-	public String getSeparator() {
+
+
+	public Character getSeparator() {
 		return separator;
 	}
 
-	public void setSeparator(String separator) {
+	public void setSeparator(Character separator) {
 		this.separator = separator;
 	}
 

@@ -34,8 +34,8 @@ SOFTWARE.
 
 
 public class ColumnNumbersModeConversionOptions extends ConversionOptions {
-	Integer subjectGUID_columnNumber = 1;
-	Integer correspondingObjectGUID_columnNumber = 3;
+	private Integer subjectGUID_columnNumber = 1;
+	private Integer correspondingObjectGUID_columnNumber = 3;
 
 	public ColumnNumbersModeConversionOptions(ConversionOptions co) {
 		super(co);

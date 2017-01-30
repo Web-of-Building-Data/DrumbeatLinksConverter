@@ -34,8 +34,8 @@ SOFTWARE.
 
 public class ColumnNamesModeConversionOptions extends ConversionOptions{
 	
-	String subjectElementGUID_columnName = "GUID";
-	String correspondingObjectGUID_columnName = "";
+	private String subjectElementGUID_columnName = "GUID";
+	private String correspondingObjectGUID_columnName = "";
 
 	public ColumnNamesModeConversionOptions(ConversionOptions co) {
 		super(co);
