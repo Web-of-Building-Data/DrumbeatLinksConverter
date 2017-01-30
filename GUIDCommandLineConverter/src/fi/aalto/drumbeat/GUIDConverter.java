@@ -2,6 +2,10 @@ package fi.aalto.drumbeat;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import org.apache.commons.cli.CommandLine;
@@ -13,6 +17,8 @@ import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
 
 import com.opencsv.CSVReader;
+import com.opencsv.bean.CsvToBean;
+import com.opencsv.bean.HeaderColumnNameTranslateMappingStrategy;
 
 /*
 * 
@@ -238,9 +244,22 @@ public class GUIDConverter {
 	}
 
 	private void convert(ColumnNamesModeConversionOptions options) {
-		
-		
+		CsvToBean<GenericLinkBean> csvToBean = new CsvToBean<GenericLinkBean>();
 
+		Map<String, String> columnMapping = new HashMap<String, String>();
+		columnMapping.put("guid", options.getSubjectElementGUID_columnName());
+		columnMapping.put("connected_guid", options.getCorrespondingObjectGUID_columnName());
+
+		HeaderColumnNameTranslateMappingStrategy<GenericLinkBean> strategy = new HeaderColumnNameTranslateMappingStrategy<GenericLinkBean>();
+		strategy.setType(GenericLinkBean.class);
+		strategy.setColumnMapping(columnMapping);
+
+		List<GenericLinkBean> list = null;
+		CSVReader reader = new CSVReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(options.getInputFile())));
+		list = csvToBean.parse(strategy, reader);
+
+		
+		//TODO conversion
 	}
 
 	private void convert(ColumnNumbersModeConversionOptions options) {
@@ -253,8 +272,8 @@ public class GUIDConverter {
 					if (nextLine != null) {
 						try {
 							String line_guid = nextLine[options.getSubjectGUID_columnNumber() - 1].trim();
-							if(line_guid!=null && line_guid.length()>0)
-								subject_guid=line_guid;
+							if (line_guid != null && line_guid.length() > 0)
+								subject_guid = line_guid;
 							String object_guid = nextLine[options.getCorrespondingObjectGUID_columnNumber() - 1].trim();
 							if (object_guid != null && object_guid.length() > 0) {
 								GenericLinkBean gb = new GenericLinkBean(subject_guid, object_guid);
@@ -274,6 +293,7 @@ public class GUIDConverter {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
+		//TODO conversion
 	}
 
 	private void executeCommandLine(CommandLine commandLine) {
