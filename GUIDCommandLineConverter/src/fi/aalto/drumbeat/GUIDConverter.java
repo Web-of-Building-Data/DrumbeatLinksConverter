@@ -1,8 +1,12 @@
 package fi.aalto.drumbeat;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +20,10 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.lang3.StringUtils;
 
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.Resource;
 import com.opencsv.CSVReader;
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.HeaderColumnNameTranslateMappingStrategy;
@@ -54,6 +62,7 @@ public class GUIDConverter {
 	private String defaultAnswer = null;
 
 	public GUIDConverter(final String[] args) {
+		System.out.println("GUIDConverter:");
 		final CommandLineParser parser = new DefaultParser();
 		initializeOptions();
 
@@ -71,26 +80,28 @@ public class GUIDConverter {
 			else
 				executeCommandLine(commandLine);
 		} catch (ParseException e) {
-			e.printStackTrace();
+			System.out.println(" "+e.getMessage());
+			System.out.println(" Use -h for instructions.");  // Unrecognized option: -x
+			
 		}
 	}
 
 	private void initializeOptions() {
-		options.addOption("y", "yes", false, "\"Yes\" as a default answer for user inputs.");
-		options.addOption("n", "no", false, "\"no\" as a default answer for user inputs.");
+		options.addOption("Y", "yes", false, "\"Yes\" as a default answer for user inputs.");
+		options.addOption("N", "no", false, "\"no\" as a default answer for user inputs.");
 		options.addOption("h", "help", false, "Instructions");
 		options.addOption("i", "inputFile", true, "The CSV file that is to be converted.");
-		options.addOption("r", "resultFile", false, "The result of the conversation in Turtle format.");
-		options.addOption("c", "CSVSeparator", false, "The separator characted used in the CSV file.");
-		options.addOption("s", "subject_prefix", false, "The subject prefix for the RDF triples.");
-		options.addOption("p", "predicate_uri", false, "The predicate uri of the links.");
-		options.addOption("o", "object_prefix", false, "The object prefix for the RDF triples.");
-		options.addOption("cns", "subjectElementGUID_columnName", false, "The subject element GUID column name");
-		options.addOption("cno", "correspondingObjectGUID_columnName", false,
+		options.addOption("o", "outputFile", false, "The result of the conversation in Turtle format.");
+		options.addOption("C", "CSVSeparator", false, "The separator characted used in the CSV file.");
+		options.addOption("S", "subject_prefix", false, "The subject prefix for the RDF triples.");
+		options.addOption("P", "predicate_uri", false, "The predicate uri of the links.");
+		options.addOption("O", "object_prefix", false, "The object prefix for the RDF triples.");
+		options.addOption("a", "subjectElementGUID_columnName", false, "The subject element GUID column name");
+		options.addOption("b", "correspondingObjectGUID_columnName", false,
 				"The corresponding object GUID column name");
 
-		options.addOption("cis", "subjectGUID_columnNumber", false, "The subject element GUID column number");
-		options.addOption("cio", "correspondingObjectGUID_columnNumber", false,
+		options.addOption("c", "subjectGUID_columnNumber", false, "The subject element GUID column number");
+		options.addOption("d", "correspondingObjectGUID_columnNumber", false,
 				"The corresponding object GUID column number");
 	}
 
@@ -110,26 +121,26 @@ public class GUIDConverter {
 
 		switch (state) {
 		case STATE_START:
-			System.out.println("GUIDConverter:");
+			
 
-			final String separator = getOption('c', commandLine);
+			final String separator = getOption('C', commandLine);
 			if (separator != StringUtils.EMPTY) {
 				if (separator.length() > 0)
 					conversion_options.setSeparator(separator.charAt(0));
 			}
 			System.out.println(" CSV column separator: " + conversion_options.getSeparator());
 
-			final String subject_prefix = getOption('s', commandLine);
+			final String subject_prefix = getOption('S', commandLine);
 			if (separator != StringUtils.EMPTY)
 				conversion_options.setSubject_prefix(subject_prefix);
 			System.out.println(" Subject prefix: " + conversion_options.getSubject_prefix());
 
-			final String predicate_uri = getOption('p', commandLine);
+			final String predicate_uri = getOption('P', commandLine);
 			if (separator != StringUtils.EMPTY)
 				conversion_options.setPredicate_uri(predicate_uri);
 			System.out.println(" Predicate URI: " + conversion_options.getPredicate_uri());
 
-			final String object_prefix = getOption('o', commandLine);
+			final String object_prefix = getOption('O', commandLine);
 			if (separator != StringUtils.EMPTY)
 				conversion_options.setObject_prefix(object_prefix);
 			System.out.println(" Object prefix: " + conversion_options.getObject_prefix());
@@ -153,7 +164,7 @@ public class GUIDConverter {
 			break;
 		case STATE_OUTPUTFILE:
 			System.out.println(" Input file is: " + conversion_options.getInputFile());
-			String resultFile = getOption('r', commandLine);
+			String resultFile = getOption('o', commandLine);
 			if (resultFile == StringUtils.EMPTY) {
 				int index = fi.getAbsolutePath().lastIndexOf("."); // Oletus:
 																	// voi olla
@@ -194,10 +205,10 @@ public class GUIDConverter {
 			break;
 		case STATE_FILESOK:
 			state = STATE_COLNUMBERS;
-			if (commandLine.hasOption("cns")) {
+			if (commandLine.hasOption("c")) {
 				state = STATE_COLNAMES;
 			}
-			if (commandLine.hasOption("cno")) {
+			if (commandLine.hasOption("d")) {
 				state = STATE_COLNAMES;
 			}
 			break;
@@ -206,8 +217,8 @@ public class GUIDConverter {
 			conversion_options = new ColumnNamesModeConversionOptions(conversion_options);
 			System.out.println("Column names are used.");
 			ColumnNamesModeConversionOptions cona = (ColumnNamesModeConversionOptions) conversion_options;
-			final String subjectElementGUID_columnName = getOption("cns", commandLine);
-			final String correspondingObjectGUID_columnName = getOption("cno", commandLine);
+			final String subjectElementGUID_columnName = getOption('a', commandLine);
+			final String correspondingObjectGUID_columnName = getOption('b', commandLine);
 			System.out.println("subjectElementGUID_columnName:"+subjectElementGUID_columnName);
 			//TODO test this
 			if (subjectElementGUID_columnName != StringUtils.EMPTY)
@@ -227,8 +238,8 @@ public class GUIDConverter {
 			System.out.println("Column numbers are used.");
 			ColumnNumbersModeConversionOptions conu = (ColumnNumbersModeConversionOptions) conversion_options;
 
-			final String subjectGUID_columnNumber = getOption("cis", commandLine);
-			final String correspondingObjectGUID_columnNumber = getOption("cio", commandLine);
+			final String subjectGUID_columnNumber = getOption('c', commandLine);
+			final String correspondingObjectGUID_columnNumber = getOption('d', commandLine);
 			if (subjectGUID_columnNumber != StringUtils.EMPTY)
 				conu.setSubjectGUID_columnNumber(subjectGUID_columnNumber);
 			if (correspondingObjectGUID_columnNumber != StringUtils.EMPTY)
@@ -269,9 +280,11 @@ public class GUIDConverter {
 		
 		
 		//TODO varmista, että column namet ovat olemassa!
+		writeTurtleFile(options,list );
 	}
 
 	private void convert(ColumnNumbersModeConversionOptions options) {
+		List<GenericLinkBean> list =new ArrayList<GenericLinkBean>();
 		String subject_guid = null;
 		try {
 			CSVReader reader = new CSVReader(new FileReader(options.getInputFile()), options.getSeparator(), '"', 0);
@@ -285,8 +298,8 @@ public class GUIDConverter {
 								subject_guid = line_guid;
 							String object_guid = nextLine[options.getCorrespondingObjectGUID_columnNumber() - 1].trim();
 							if (object_guid != null && object_guid.length() > 0) {
-								GenericLinkBean gb = new GenericLinkBean(subject_guid, object_guid);
-								System.out.println(gb);
+								GenericLinkBean gb = new GenericLinkBean(subject_guid, object_guid);				
+								list.add(gb);
 							}
 
 						} catch (Exception e) {
@@ -302,7 +315,7 @@ public class GUIDConverter {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		//TODO conversion
+		writeTurtleFile(options,list );
 	}
 
 	private void executeCommandLine(CommandLine commandLine) {
@@ -317,6 +330,33 @@ public class GUIDConverter {
 		}
 
 	}
+	
+	private void writeTurtleFile(ConversionOptions options,List<GenericLinkBean> list ) {
+		Model model = ModelFactory.createDefaultModel();
+		Property link_property=model.createProperty(options.getPredicate_uri());
+
+		String subject_guid_base =options.getSubject_prefix();
+		String object_guid_base =options.getObject_prefix();
+		
+		for (GenericLinkBean l : list)
+		{
+			Resource subject_guid = model.createResource(subject_guid_base+l.getGuid());
+			Resource object_guid = model.createResource(object_guid_base+l.getConnected_guid());
+			subject_guid.addProperty(link_property, object_guid);
+		}
+		FileOutputStream fop = null;
+		try {
+			fop = new FileOutputStream(options.getResultFile());
+			model.write(fop,"TURTLE");
+			fop.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+
 
 	public static String getOption(final char option, final CommandLine commandLine) {
 		if (commandLine.hasOption(option))
@@ -324,11 +364,7 @@ public class GUIDConverter {
 		return StringUtils.EMPTY;
 	}
 
-	public static String getOption(final String option, final CommandLine commandLine) {
-		if (commandLine.hasOption(option))
-			return commandLine.getOptionValue(option);
-		return StringUtils.EMPTY;
-	}
+
 
 	private void help() {
 		HelpFormatter formater = new HelpFormatter();

@@ -1,5 +1,6 @@
 package fi.aalto.drumbeat;
 
+import guidcompressor.GuidCompressor;
 
 public class GenericLinkBean {
 		private String guid;
@@ -11,20 +12,26 @@ public class GenericLinkBean {
 		}
 		public GenericLinkBean(String guid, String connected_guid) {
 			super();
-			this.guid = guid;
-			this.connected_guid = connected_guid;
+			setGuid(guid);
+			setConnected_guid(connected_guid);
 		}
 		public String getGuid() {
 			return guid;
 		}
 		public void setGuid(String guid) {
-			this.guid = guid;
+			if(guid==null || guid.length()==0)
+				this.guid=null;
+			else
+			    this.guid = GuidCompressor.uncompressGuidString(guid).toUpperCase();
 		}
 		public String getConnected_guid() {
 			return connected_guid;
 		}
-		public void setConnected_guid(String connected_guid) {
-			this.connected_guid = connected_guid;
+		public void setConnected_guid(String guid) {
+			if(guid==null || guid.length()==0)
+				this.connected_guid=null;
+			else
+				this.connected_guid = GuidCompressor.uncompressGuidString(guid).toUpperCase();
 		}
 		@Override
 		public String toString() {
