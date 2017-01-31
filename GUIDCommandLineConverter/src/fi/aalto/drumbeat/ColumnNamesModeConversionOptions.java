@@ -68,7 +68,19 @@ public class ColumnNamesModeConversionOptions extends ConversionOptions{
 			ret=false;
 		if (!values.add(this.subjectElementGUID_columnName))
 			ret=false;
+		
+		if(ret==false)
+		{
+			System.err.println("Value was:"+this);
+		}
 		return ret;
 	}
+
+	@Override
+	public String toString() {
+		return "ColumnNamesModeConversionOptions [subjectElementGUID_columnName=" + subjectElementGUID_columnName
+				+ ", correspondingObjectGUID_columnName=" + correspondingObjectGUID_columnName + "]";
+	}
+	
 	
 }

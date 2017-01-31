@@ -208,12 +208,15 @@ public class GUIDConverter {
 			ColumnNamesModeConversionOptions cona = (ColumnNamesModeConversionOptions) conversion_options;
 			final String subjectElementGUID_columnName = getOption("cns", commandLine);
 			final String correspondingObjectGUID_columnName = getOption("cno", commandLine);
+			System.out.println("subjectElementGUID_columnName:"+subjectElementGUID_columnName);
+			//TODO test this
 			if (subjectElementGUID_columnName != StringUtils.EMPTY)
 				cona.setSubjectElementGUID_columnName(subjectElementGUID_columnName);
 			if (correspondingObjectGUID_columnName != StringUtils.EMPTY)
 				cona.setCorrespondingObjectGUID_columnName(correspondingObjectGUID_columnName);
 			if (!cona.isValid()) {
 				System.out.println("Invalid column selection: Each value should be unique,");
+				return true;
 			}
 
 			convert(cona);
@@ -233,6 +236,7 @@ public class GUIDConverter {
 
 			if (!conu.isValid()) {
 				System.out.println("Invalid column selection: Each value should be unique,");
+				return true;
 			}
 			convert(conu);
 			return true;
@@ -255,11 +259,16 @@ public class GUIDConverter {
 		strategy.setColumnMapping(columnMapping);
 
 		List<GenericLinkBean> list = null;
+		System.out.println("input file name: "+options.getInputFile());
 		CSVReader reader = new CSVReader(new InputStreamReader(ClassLoader.getSystemResourceAsStream(options.getInputFile())));
 		list = csvToBean.parse(strategy, reader);
 
 		
-		//TODO conversion
+		for(GenericLinkBean gb:list)
+	       System.out.println(gb);
+		
+		
+		//TODO varmista, että column namet ovat olemassa!
 	}
 
 	private void convert(ColumnNumbersModeConversionOptions options) {
